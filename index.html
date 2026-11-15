@@ -70,7 +70,8 @@
   .frame.sel{border-color:var(--gold);box-shadow:0 0 0 3px rgba(242,207,122,.25)}
   .frame.sel span{color:var(--gold);font-weight:700}
 
-  .frame .zoom{position:absolute;right:6px;top:6px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;padding:3px 8px;border-radius:999px}
+  .frame .zoom{position:absolute;right:5px;top:5px;background:rgba(0,0,0,.72);color:#fff;font-size:13px;font-weight:600;padding:8px 11px;border-radius:999px;border:1px solid rgba(255,255,255,.35);cursor:pointer}
+  .frame:active{transform:scale(.98)}
   .lb{position:fixed;inset:0;z-index:50;background:rgba(3,4,10,.92);display:none;flex-direction:column;align-items:center;justify-content:center;padding:14px}
   .lb.on{display:flex}
   .lb .name{font-size:17px;font-weight:700;color:var(--gold);margin-bottom:10px}
@@ -197,12 +198,9 @@
   <section class="screen" id="s2">
     <div class="card">
       <h2>② 프레임을 고르세요</h2>
-      <p class="hint" style="margin:-6px 0 12px;text-align:left">프레임을 누르면 크게 볼 수 있어요.</p>
+      <p class="hint" style="margin:-6px 0 12px;text-align:left">프레임을 누르면 바로 촬영으로 넘어갑니다. 자세히 보려면 <b>🔍 크게</b>를 누르세요.</p>
       <div class="frames" id="frames"></div>
-      <div class="row">
-        <button class="btn ghost" id="back1">이전</button>
-        <button class="btn" id="toCam" disabled>다음</button>
-      </div>
+      <button class="btn ghost" id="back1">이전</button>
     </div>
   </section>
 
@@ -250,7 +248,7 @@
   </div>
   <div class="row">
     <button class="btn ghost" id="lbClose">닫기</button>
-    <button class="btn" id="lbPick">이 프레임 선택</button>
+    <button class="btn" id="lbPick">이 프레임으로 촬영</button>
   </div>
 </div>
 
@@ -341,10 +339,11 @@ const frameImgs = FRAMES.map(f => { const im = new Image(); im.src = f.src; retu
 FRAMES.forEach((f,i) => {
   const d = document.createElement('div');
   d.className = 'frame';
-  d.innerHTML = '<img alt=""><div class="zoom">크게 보기</div><span></span>';
+  d.innerHTML = '<img alt=""><button type="button" class="zoom">🔍 크게</button><span></span>';
   d.querySelector('img').src = f.src;
   d.querySelector('span').textContent = f.name;
-  d.onclick = () => openLb(i);
+  d.onclick = () => chooseFrame(i);
+  d.querySelector('.zoom').onclick = e => { e.stopPropagation(); openLb(i); };
   $('frames').appendChild(d);
 });
 /* 프레임 크게 보기 */
@@ -352,7 +351,10 @@ let lbIdx = 0;
 function pickFrame(i){
   state.frame = i;
   document.querySelectorAll('.frame').forEach((el,j)=>el.classList.toggle('sel', j===i));
-  $('toCam').disabled = false;
+}
+async function chooseFrame(i){          // 프레임을 고르면 곧바로 촬영 화면으로
+  pickFrame(i); closeLb();
+  show(3); resetShots(); await startCamera();
 }
 function openLb(i){
   lbIdx = (i + FRAMES.length) % FRAMES.length;
@@ -364,7 +366,7 @@ function closeLb(){ $('lb').classList.remove('on'); }
 $('lbPrev').onclick = e => { e.stopPropagation(); openLb(lbIdx-1); };
 $('lbNext').onclick = e => { e.stopPropagation(); openLb(lbIdx+1); };
 $('lbClose').onclick = closeLb;
-$('lbPick').onclick = () => { pickFrame(lbIdx); closeLb(); };
+$('lbPick').onclick = () => chooseFrame(lbIdx);
 $('lb').onclick = e => { if(e.target === $('lb')) closeLb(); };
 document.addEventListener('keydown', e => {
   if(!$('lb').classList.contains('on')) return;
@@ -372,7 +374,6 @@ document.addEventListener('keydown', e => {
 });
 
 $('back1').onclick = () => show(1);
-$('toCam').onclick = async () => { show(3); resetShots(); await startCamera(); };
 
 /* ---------- 3. 카메라 ---------- */
 async function startCamera(){
@@ -570,7 +571,6 @@ $('restart').onclick = () => {
   $('sid').value = ''; $('sname').value = '';
   state.frame = -1; state.shots = []; state.blob = null;
   document.querySelectorAll('.frame').forEach(el=>el.classList.remove('sel'));
-  $('toCam').disabled = true;
   show(1); $('sid').focus();
 };
 </script>
